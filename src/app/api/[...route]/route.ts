@@ -1,13 +1,20 @@
+import { D1Database } from "@cloudflare/workers-types";
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
 
 export const runtime = "edge";
 
-const app = new Hono().basePath("/api");
+type Bindings = {
+  DB: D1Database;
+};
 
-const route = app.get("/hello", async (c) => {
-  return c.json({ name: "John Doe" });
+const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
+
+app.get("/query/customers", async (c) => {
+  let { results } = await process.env.DB.prepare(
+    "SELECT * FROM customers"
+  ).all();
+  return c.json(results);
 });
 
 export const GET = handle(app);
-export type AppType = typeof route;
